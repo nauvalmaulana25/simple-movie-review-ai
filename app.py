@@ -9,113 +9,113 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import os
 
-# Panggil fungsinya
-download_nltk_resources()
-
-# --- Download NLTK data (hanya perlu sekali) ---
-# Anda bisa menjalankan ini sekali secara manual di terminal python
-# atau biarkan Streamlit menanganinya dengan @st.cache_resource
+# --- 1. DOWNLOAD NLTK RESOURCES (Sangat Penting untuk Cloud) ---
 @st.cache_resource
-def download_nltk_data():
-    nltk.download('stopwords')
-    nltk.download('punkt')
+def setup_nltk():
+    resources = ['stopwords', 'punkt', 'punkt_tab']
+    for res in resources:
+        nltk.download(res)
 
-download_nltk_data()
+setup_nltk()
 
-# --- Muat Model dan Tokenizer ---
-# Gunakan st.cache_resource untuk memuat model hanya sekali
+# --- 2. LOAD MODEL & TOKENIZER (Gunakan Cache agar Cepat) ---
 @st.cache_resource
-def load_model_and_tokenizer():
+def load_assets():
+    # Cek apakah model deep learning ada
     use_deep_model = os.path.exists('deep_sentiment_model.h5')
+    
+    model = None
+    tokenizer = None
+    tfidf_vectorizer = None
+    max_len = 200
 
     if use_deep_model:
-        print("Loading deep learning model...")
         model = tf.keras.models.load_model('deep_sentiment_model.h5')
-        with open('tokenizer.pkl', 'rb') as f:
-            tokenizer = pickle.load(f)
-        max_len = 200
-        # Mengembalikan None untuk tfidf_vectorizer agar konsisten
-        return model, tokenizer, max_len, None, use_deep_model
+        if os.path.exists('tokenizer.pkl'):
+            with open('tokenizer.pkl', 'rb') as f:
+                tokenizer = pickle.load(f)
     else:
-        print("Loading traditional ML model...")
-        with open('sentiment_model.pkl', 'rb') as f:
-            model = pickle.load(f)
-        with open('tfidf_vectorizer.pkl', 'rb') as f:
-            tfidf_vectorizer = pickle.load(f)
-        # Mengembalikan None untuk tokenizer dan max_len
-        return model, None, None, tfidf_vectorizer, use_deep_model
+        if os.path.exists('sentiment_model.pkl'):
+            with open('sentiment_model.pkl', 'rb') as f:
+                model = pickle.load(f)
+        if os.path.exists('tfidf_vectorizer.pkl'):
+            with open('tfidf_vectorizer.pkl', 'rb') as f:
+                tfidf_vectorizer = pickle.load(f)
+                
+    return model, tokenizer, tfidf_vectorizer, use_deep_model, max_len
 
-model, tokenizer, max_len, tfidf_vectorizer, use_deep_model = load_model_and_tokenizer()
+model, tokenizer, tfidf_vectorizer, use_deep_model, max_len = load_assets()
 
-
-# --- Fungsi Preprocessing ---
-def preprocess_text_ml(text):
+# --- 3. FUNGSI PREPROCESSING ---
+def preprocess_text(text, method='dl'):
     text = text.lower()
     text = re.sub(r'<.*?>', '', text)
     text = re.sub(r'[^a-zA-Z\s]', '', text)
-    stop_words = set(stopwords.words('english'))
-    stemmer = PorterStemmer()
-    tokens = nltk.word_tokenize(text)
-    tokens = [stemmer.stem(word) for word in tokens if word not in stop_words and len(word) > 2]
-    return ' '.join(tokens)
-
-def preprocess_text_dl(text):
-    text = text.lower()
-    text = re.sub(r'<.*?>', '', text)
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    
     stop_words = set(stopwords.words('english'))
     tokens = nltk.word_tokenize(text)
-    tokens = [word for word in tokens if word not in stop_words and len(word) > 2]
-    return ' '.join(tokens)
-
-# --- Antarmuka Streamlit ---
-st.title("Analisis Sentimen Teks")
-st.write("Masukkan ulasan atau teks di bawah ini untuk memprediksi sentimennya.")
-
-# Text area untuk input pengguna
-review = st.text_area("Teks Ulasan", "")
-
-# Tombol untuk melakukan prediksi
-if st.button("Prediksi Sentimen"):
-    if review:
-        if use_deep_model:
-            # Preprocess untuk model deep learning
-            processed_review = preprocess_text_dl(review)
-            
-            # Konversi ke sekuens dan lakukan padding
-            sequence = tokenizer.texts_to_sequences([processed_review])
-            padded_sequence = pad_sequences(sequence, maxlen=max_len)
-            
-            # Lakukan prediksi
-            prediction = model.predict(padded_sequence)[0][0]
-            sentiment = "Positif" if prediction > 0.5 else "Negatif"
-            confidence = float(prediction) if prediction > 0.5 else float(1 - prediction)
-            
-        else:
-            # Preprocess untuk model ML tradisional
-            processed_review = preprocess_text_ml(review)
-            
-            # Transformasi menggunakan TF-IDF
-            review_tfidf = tfidf_vectorizer.transform([processed_review])
-            
-            # Lakukan prediksi
-            prediction_val = model.predict(review_tfidf)[0]
-            sentiment = "Positif" if prediction_val == 1 else "Negatif"
-            
-            # Dapatkan probabilitas untuk confidence
-            proba = model.predict_proba(review_tfidf)[0]
-            confidence = float(proba[1]) if prediction_val == 1 else float(proba[0])
-        
-        # Tampilkan hasil
-        st.subheader("Hasil Prediksi")
-        if sentiment == "Positif":
-            st.success(f"Sentimen: {sentiment}")
-        else:
-            st.error(f"Sentimen: {sentiment}")
-        
-        st.write(f"Tingkat Keyakinan: {confidence:.2%}")
-
+    
+    if method == 'ml':
+        stemmer = PorterStemmer()
+        tokens = [stemmer.stem(word) for word in tokens if word not in stop_words and len(word) > 2]
     else:
+        tokens = [word for word in tokens if word not in stop_words and len(word) > 2]
+        
+    return ' '.join(tokens)
 
-        st.warning("Silakan masukkan teks ulasan terlebih dahulu.")
+# --- 4. ANTARMUKA STREAMLIT ---
+st.set_page_config(page_title="Sentiment Analyzer", page_icon="📊")
 
+st.title("📊 AI Movie Sentiment Analysis")
+st.write(f"Model Terdeteksi: **{'Deep Learning (.h5)' if use_deep_model else 'Machine Learning (.pkl)'}**")
+
+review = st.text_area("Input any movie review in English:", placeholder="Type your review here...")
+
+if st.button("Analyze Sentiment"):
+    if not review.strip():
+        st.warning("please enter a movie review to analyze.")
+    elif model is None:
+        st.error("Model not found. Please ensure the model files are in place.")
+    else:
+        with st.spinner('Sedang menganalisis...'):
+            if use_deep_model:
+                # Proses Deep Learning
+                processed = preprocess_text(review, method='dl')
+                sequence = tokenizer.texts_to_sequences([processed])
+                padded = pad_sequences(sequence, maxlen=max_len)
+                
+                prediction = model.predict(padded)[0][0]
+                sentiment = "Positive" if prediction > 0.5 else "Negative"
+                confidence = prediction if prediction > 0.5 else 1 - prediction
+            else:
+                # Proses ML Tradisional
+                processed = preprocess_text(review, method='ml')
+                vector = tfidf_vectorizer.transform([processed])
+                
+                prediction = model.predict(vector)[0]
+                # Kadang model ML mengembalikan 0/1 atau 'Negative'/'Positive'
+                if prediction == 1 or str(prediction).lower() == 'positive':
+                    sentiment = "Positive"
+                else:
+                    sentiment = "Negative"
+                
+                # Coba ambil probabilitas jika ada
+                try:
+                    proba = model.predict_proba(vector)[0]
+                    confidence = max(proba)
+                except:
+                    confidence = None
+
+            # Tampilkan Hasil
+            st.divider()
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if sentiment == "Positive":
+                    st.success(f"### Sentimen: {sentiment} 😊")
+                else:
+                    st.error(f"### Sentimen: {sentiment} ☹️")
+            
+            with col2:
+                if confidence is not None:
+                    st.metric("Confidence Score", f"{confidence:.2%}")
