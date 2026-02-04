@@ -9,6 +9,18 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import os
 
+# Tambahkan ini di bagian paling atas
+def download_nltk_resources():
+    resources = ['stopwords', 'punkt', 'punkt_tab']
+    for res in resources:
+        try:
+            nltk.data.find(res)
+        except LookupError:
+            nltk.download(res)
+
+# Panggil fungsinya
+download_nltk_resources()
+
 # --- Download NLTK data (hanya perlu sekali) ---
 # Anda bisa menjalankan ini sekali secara manual di terminal python
 # atau biarkan Streamlit menanganinya dengan @st.cache_resource
@@ -113,4 +125,5 @@ if st.button("Prediksi Sentimen"):
         st.write(f"Tingkat Keyakinan: {confidence:.2%}")
 
     else:
+
         st.warning("Silakan masukkan teks ulasan terlebih dahulu.")
