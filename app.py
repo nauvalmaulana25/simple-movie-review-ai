@@ -118,11 +118,12 @@ if st.button("Analyze Sentiment"):
             
             with col1:
                 if sentiment == "Positive":
-                    st.success(f"### Sentimen: {sentiment} 😊")
+                    st.success(f"### Sentiment: {sentiment} 😊")
                 else:
-                    st.error(f"### Sentimen: {sentiment} ☹️")
+                    st.error(f"### Sentiment: {sentiment} ☹️")
             
             with col2:
                 if confidence is not None:
                     st.metric("Confidence Score", f"{confidence:.2%}")
+
 
