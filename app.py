@@ -9,6 +9,12 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import os
 
+st.set_page_config(
+    page_title="Analyze Movie Review AI",
+    page_icon="🎬",
+    layout="centered"
+)
+
 # --- 1. DOWNLOAD NLTK RESOURCES (Sangat Penting untuk Cloud) ---
 @st.cache_resource
 def setup_nltk():
@@ -67,7 +73,7 @@ def preprocess_text(text, method='dl'):
 st.set_page_config(page_title="Sentiment Analyzer", page_icon="📊")
 
 st.title("📊 AI Movie Sentiment Analysis")
-st.write(f"Model Terdeteksi: **{'Deep Learning (.h5)' if use_deep_model else 'Machine Learning (.pkl)'}**")
+st.write(f"Model Detected: **{'Deep Learning (.h5)' if use_deep_model else 'Machine Learning (.pkl)'}**")
 
 review = st.text_area("Input any movie review in English:", placeholder="Type your review here...")
 
@@ -119,3 +125,4 @@ if st.button("Analyze Sentiment"):
             with col2:
                 if confidence is not None:
                     st.metric("Confidence Score", f"{confidence:.2%}")
+
