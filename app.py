@@ -9,15 +9,6 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import os
 
-# Tambahkan ini di bagian paling atas
-def download_nltk_resources():
-    resources = ['stopwords', 'punkt', 'punkt_tab']
-    for res in resources:
-        try:
-            nltk.data.find(res)
-        except LookupError:
-            nltk.download(res)
-
 # Panggil fungsinya
 download_nltk_resources()
 
@@ -127,3 +118,4 @@ if st.button("Prediksi Sentimen"):
     else:
 
         st.warning("Silakan masukkan teks ulasan terlebih dahulu.")
+
