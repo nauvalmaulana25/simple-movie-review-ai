@@ -15,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- 1. DOWNLOAD NLTK RESOURCES (Sangat Penting untuk Cloud) ---
+# DOWNLOAD NLTK RESOURCES
 @st.cache_resource
 def setup_nltk():
     resources = ['stopwords', 'punkt', 'punkt_tab']
@@ -24,10 +24,10 @@ def setup_nltk():
 
 setup_nltk()
 
-# --- 2. LOAD MODEL & TOKENIZER (Gunakan Cache agar Cepat) ---
+# LOAD MODEL & TOKENIZER
 @st.cache_resource
 def load_assets():
-    # Cek apakah model deep learning ada
+    # MODEL CHECKING
     use_deep_model = os.path.exists('deep_sentiment_model.h5')
     
     model = None
@@ -52,7 +52,7 @@ def load_assets():
 
 model, tokenizer, tfidf_vectorizer, use_deep_model, max_len = load_assets()
 
-# --- 3. FUNGSI PREPROCESSING ---
+# PREPROCESSING FUNCTION
 def preprocess_text(text, method='dl'):
     text = text.lower()
     text = re.sub(r'<.*?>', '', text)
@@ -69,7 +69,7 @@ def preprocess_text(text, method='dl'):
         
     return ' '.join(tokens)
 
-# --- 4. ANTARMUKA STREAMLIT ---
+# STREAMLIT UI
 st.set_page_config(page_title="Sentiment Analyzer", page_icon="📊")
 
 st.title("📊 AI Movie Sentiment Analysis")
@@ -85,7 +85,7 @@ if st.button("Analyze Sentiment"):
     else:
         with st.spinner('Sedang menganalisis...'):
             if use_deep_model:
-                # Proses Deep Learning
+                # Deep Learning
                 processed = preprocess_text(review, method='dl')
                 sequence = tokenizer.texts_to_sequences([processed])
                 padded = pad_sequences(sequence, maxlen=max_len)
@@ -94,25 +94,25 @@ if st.button("Analyze Sentiment"):
                 sentiment = "Positive" if prediction > 0.5 else "Negative"
                 confidence = prediction if prediction > 0.5 else 1 - prediction
             else:
-                # Proses ML Tradisional
+                # ML Traditional
                 processed = preprocess_text(review, method='ml')
                 vector = tfidf_vectorizer.transform([processed])
                 
                 prediction = model.predict(vector)[0]
-                # Kadang model ML mengembalikan 0/1 atau 'Negative'/'Positive'
+                
                 if prediction == 1 or str(prediction).lower() == 'positive':
                     sentiment = "Positive"
                 else:
                     sentiment = "Negative"
                 
-                # Coba ambil probabilitas jika ada
+                # Probability if any
                 try:
                     proba = model.predict_proba(vector)[0]
                     confidence = max(proba)
                 except:
                     confidence = None
 
-            # Tampilkan Hasil
+            # Show Result
             st.divider()
             col1, col2 = st.columns(2)
             
@@ -125,5 +125,6 @@ if st.button("Analyze Sentiment"):
             with col2:
                 if confidence is not None:
                     st.metric("Confidence Score", f"{confidence:.2%}")
+
 
 
